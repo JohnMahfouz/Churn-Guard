@@ -3,6 +3,7 @@ import os
 os.environ.setdefault("MLFLOW_DISABLE_AGENT_HINT", "1")
 
 import sys
+from datetime import datetime, timezone
 
 import lightgbm as lgb
 import matplotlib.pyplot as plt
@@ -37,7 +38,7 @@ df = pd.read_parquet(FEATURES_PATH)
 train_df = df[df["split"] == "train"].drop(columns=["split"])
 test_df = df[df["split"] == "test"].drop(columns=["split"])
 
-feature_cols = [c for c in df.columns if c not in {TARGET, "split"}]
+feature_cols = [c for c in df.columns if c not in {TARGET, "split", "label_available"}]
 categorical_cols = [c for c in feature_cols if str(train_df[c].dtype) == "category"]
 
 X_train, y_train = train_df[feature_cols], train_df[TARGET]
@@ -109,6 +110,7 @@ with mlflow.start_run() as run:
 
     if promote:
         client.set_tag(new_run_id, "stage", "production")
+        client.set_tag(new_run_id, "promoted_at", datetime.now(timezone.utc).isoformat())
         if prod_run is not None:
             client.set_tag(prod_run.info.run_id, "stage", "archived")
     else:

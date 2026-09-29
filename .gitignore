@@ -16,3 +16,4 @@ reports/
 
 # Redundant copy of the public dataset (same data as Telco_customer_churn.xlsx)
 archive.zip
+/telco_features.parquet

@@ -34,7 +34,7 @@ df = pd.read_parquet(FEATURES_PATH)
 train_df = df[df["split"] == "train"].drop(columns=["split"])
 test_df = df[df["split"] == "test"].drop(columns=["split"])
 
-feature_cols = [c for c in df.columns if c not in {TARGET, "split"}]
+feature_cols = [c for c in df.columns if c not in {TARGET, "split", "label_available"}]
 categorical_cols = [c for c in feature_cols if str(train_df[c].dtype) == "category"]
 
 X_train, y_train = train_df[feature_cols], train_df[TARGET]

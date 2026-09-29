@@ -112,6 +112,23 @@ for c in categorical_cols:
 print(f"Cast {len(categorical_cols)} columns to 'category' dtype: {categorical_cols}")
 
 # ============================================================
+# 6. Delayed-label availability flag
+# ============================================================
+# Real-world monitoring never has 100% of true outcomes back immediately -- only
+# some "scored" customers have a confirmed churn outcome by the time you check in.
+# Training rows always have their label (that's what the model is fit on); a fixed
+# share of test rows are marked as having their outcome "back" yet, seeded so
+# re-running this script reproduces the same reveal pattern every time. This used
+# to be generated ad hoc inside drift_check.py -- it's now a persisted column so
+# the delayed-label state is part of the dataset, not reinvented per-script.
+LABEL_REVEAL_FRAC = 0.6
+
+df["label_available"] = True
+test_mask = df["split"] == "test"
+reveal_rng = np.random.default_rng(RANDOM_STATE)
+df.loc[test_mask, "label_available"] = reveal_rng.random(int(test_mask.sum())) < LABEL_REVEAL_FRAC
+
+# ============================================================
 # Summary
 # ============================================================
 print(f"\nFinal shape: {df.shape}")

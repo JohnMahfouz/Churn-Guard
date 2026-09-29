@@ -5,7 +5,6 @@ os.environ.setdefault("MLFLOW_DISABLE_AGENT_HINT", "1")
 import sys
 
 import mlflow
-import numpy as np
 import pandas as pd
 from evidently.legacy.metric_preset import ClassificationPreset, DataDriftPreset
 from evidently.legacy.pipeline.column_mapping import ColumnMapping
@@ -19,7 +18,6 @@ EXPERIMENT_NAME = "churn-guard"
 REPORTS_DIR = "reports"
 RANDOM_STATE = 42
 SHIFT_FRAC = 0.2
-REVEAL_FRAC = 0.6
 # Evidently's DataDriftPreset ships a documented default (share of drifted columns
 # >= 0.5); ClassificationPreset has no equivalent single verdict, so this check
 # reuses retrain.py's own promotion margin as the "meaningful change" bar.
@@ -31,7 +29,7 @@ df = pd.read_parquet(FEATURES_PATH)
 train_df = df[df["split"] == "train"].drop(columns=["split"])
 test_df = df[df["split"] == "test"].drop(columns=["split"])
 
-feature_cols = [c for c in df.columns if c not in {TARGET, "split"}]
+feature_cols = [c for c in df.columns if c not in {TARGET, "split", "label_available"}]
 categorical_cols = [c for c in feature_cols if str(train_df[c].dtype) == "category"]
 numerical_cols = [c for c in feature_cols if c not in categorical_cols]
 
@@ -90,12 +88,15 @@ prediction_drift_detected = prediction_drift_report.as_dict()["metrics"][0]["res
 # ============================================================
 # 3. Delayed-label simulation: the test split was "scored 30 days ago", and only
 # some of the true labels have "come back" yet -- monitoring has to work with that.
+# Which rows are resolved vs. pending is read from the persisted label_available
+# column (set once, deterministically, in feature_engineering.py) rather than
+# redrawn here -- that column is the single source of truth for reveal state.
 # ============================================================
 X_test_full = test_df[feature_cols]
 y_test_full = test_df[TARGET]
 y_pred_full = model.predict(X_test_full)
 
-resolved_mask = np.random.default_rng(RANDOM_STATE).random(len(test_df)) < REVEAL_FRAC
+resolved_mask = test_df["label_available"].to_numpy()
 resolved_count = int(resolved_mask.sum())
 pending_count = len(test_df) - resolved_count
 

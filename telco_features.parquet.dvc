@@ -1,0 +1,5 @@
+outs:
+- md5: 918653248983cc7188b9469088836088
+  size: 141078
+  hash: md5
+  path: telco_features.parquet
