@@ -13,7 +13,8 @@ mlruns/
 # Regenerated pipeline outputs -- not source, safe to recreate by re-running the scripts
 feature_importance.png
 reports/
+chroma_db/
 
-# Redundant copy of the public dataset (same data as Telco_customer_churn.xlsx)
+# Redundant copy of the public dataset (same data as data/telco_customer_churn_raw.xlsx)
 archive.zip
-/telco_features.parquet
+/data/telco_features.parquet

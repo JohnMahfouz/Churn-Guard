@@ -2,7 +2,9 @@ import os
 
 os.environ.setdefault("MLFLOW_DISABLE_AGENT_HINT", "1")
 
+import json
 import sys
+from datetime import datetime, timezone
 
 import mlflow
 import pandas as pd
@@ -12,7 +14,7 @@ from evidently.legacy.report import Report
 from mlflow.tracking import MlflowClient
 from sklearn.metrics import f1_score, precision_score, recall_score
 
-FEATURES_PATH = "telco_features.parquet"
+FEATURES_PATH = "data/telco_features.parquet"
 TARGET = "Churn Value"
 EXPERIMENT_NAME = "churn-guard"
 REPORTS_DIR = "reports"
@@ -126,3 +128,21 @@ print(f"Performance drift: {'DETECTED' if performance_drift_detected else 'OK'}"
 print(f"Labels: {resolved_count} resolved, {pending_count} pending -- "
       f"F1 training={training_f1:.4f} resolved={resolved_f1:.4f} "
       f"(precision={resolved_precision:.4f}, recall={resolved_recall:.4f})")
+
+# Persisted alongside the HTML reports so a dashboard can show "last known drift
+# status" without re-running Evidently (which needs the separate .venv-drift
+# Python 3.11 environment) or scraping the reports' embedded JS/JSON.
+summary = {
+    "generated_at": datetime.now(timezone.utc).isoformat(),
+    "feature_drift_detected": bool(feature_drift_detected),
+    "prediction_drift_detected": bool(prediction_drift_detected),
+    "performance_drift_detected": bool(performance_drift_detected),
+    "resolved_count": resolved_count,
+    "pending_count": pending_count,
+    "training_f1": training_f1,
+    "resolved_f1": resolved_f1,
+    "resolved_precision": resolved_precision,
+    "resolved_recall": resolved_recall,
+}
+with open(os.path.join(REPORTS_DIR, "drift_summary.json"), "w", encoding="utf-8") as f:
+    json.dump(summary, f, indent=2)

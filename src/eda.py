@@ -2,7 +2,7 @@ import re
 
 import pandas as pd
 
-DATA_PATH = "Telco_customer_churn.xlsx"
+DATA_PATH = "data/telco_customer_churn_raw.xlsx"
 
 df = pd.read_excel(DATA_PATH)
 

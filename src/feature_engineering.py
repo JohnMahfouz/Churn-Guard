@@ -6,8 +6,8 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-DATA_PATH = "Telco_customer_churn.xlsx"
-OUTPUT_PATH = "telco_features.parquet"
+DATA_PATH = "data/telco_customer_churn_raw.xlsx"
+OUTPUT_PATH = "data/telco_features.parquet"
 RANDOM_STATE = 42
 TARGET = "Churn Value"
 SMOOTHING = 10  # shrinkage strength toward the global rate for small groups

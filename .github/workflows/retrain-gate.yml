@@ -27,7 +27,7 @@ jobs:
       # depending on DVC here -- DVC's job stays local dataset versioning, not CI
       # data delivery.
       - name: Regenerate features from raw data
-        run: python feature_engineering.py
+        run: python src/feature_engineering.py
 
       # A static cache key plus a prefix restore-key gives "always restore the most
       # recent entry, always save a new one" -- with a single fixed key, actions/cache
@@ -49,7 +49,7 @@ jobs:
       - name: Run retrain.py (promotion gate)
         run: |
           set -o pipefail
-          python retrain.py 2>&1 | tee retrain_summary.txt
+          python src/retrain.py 2>&1 | tee retrain_summary.txt
 
       - name: Save MLflow tracking store
         if: always()
