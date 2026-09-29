@@ -1,0 +1,18 @@
+# Local-machine environments and tool state
+.venv-drift/
+.claude/
+__pycache__/
+*.pyc
+
+# MLflow tracking store (SQLite binary + run artifacts) -- regenerated locally by
+# train.py/retrain.py; in CI this is restored/saved via actions/cache instead of git,
+# since a binary SQLite file has no meaningful diff/merge in version control.
+mlflow.db
+mlruns/
+
+# Regenerated pipeline outputs -- not source, safe to recreate by re-running the scripts
+feature_importance.png
+reports/
+
+# Redundant copy of the public dataset (same data as Telco_customer_churn.xlsx)
+archive.zip

@@ -1,0 +1,62 @@
+name: Retrain Gate
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  retrain-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # A static cache key plus a prefix restore-key gives "always restore the most
+      # recent entry, always save a new one" -- with a single fixed key, actions/cache
+      # would skip saving on every run after the first, and the promoted/archived tags
+      # from this run would never persist for the next one.
+      - name: Restore MLflow tracking store
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            mlflow.db
+            mlruns
+          key: mlflow-tracking-store-${{ github.run_id }}
+          restore-keys: |
+            mlflow-tracking-store-
+
+      # set -o pipefail is required here: without it, `python retrain.py | tee ...`
+      # would report tee's exit code (always 0) instead of retrain.py's, and a
+      # rejected model would silently pass CI instead of failing the job.
+      - name: Run retrain.py (promotion gate)
+        run: |
+          set -o pipefail
+          python retrain.py 2>&1 | tee retrain_summary.txt
+
+      - name: Save MLflow tracking store
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            mlflow.db
+            mlruns
+          key: mlflow-tracking-store-${{ github.run_id }}
+
+      - name: Upload retrain artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: retrain-gate-${{ github.run_id }}
+          path: |
+            retrain_summary.txt
+            mlruns
+          retention-days: 30
