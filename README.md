@@ -16,15 +16,15 @@ A promotion-gated churn prediction pipeline on the IBM Telco Customer Churn data
 
 ## Retrain Gate
 
-`.github/workflows/retrain-gate.yml` runs `retrain.py` on every push to `main` and on demand (`workflow_dispatch`). The job's pass/fail state *is* `retrain.py`'s exit code: 0 (promoted) passes, 1 (rejected) fails -- a model that doesn't clearly improve cannot become production without the Actions run visibly failing. Each run uploads `retrain_summary.txt` and the MLflow run artifacts (including the feature importance plot and model) so the promotion/rejection reasoning is visible from the Actions tab.
+`.github/workflows/retrain-gate.yml` runs `feature_engineering.py` then `retrain.py` on every push to `main` and on demand (`workflow_dispatch`). The job's pass/fail state *is* `retrain.py`'s exit code: 0 (promoted) passes, 1 (rejected) fails -- a model that doesn't clearly improve cannot become production without the Actions run visibly failing. Each run uploads `retrain_summary.txt` and the MLflow run artifacts (including the feature importance plot and model) so the promotion/rejection reasoning is visible from the Actions tab.
 
-### What's committed vs. gitignored, and why
+### What's committed vs. DVC-tracked vs. gitignored, and why
 
-CI runs in a clean checkout with no access to this machine's files, so anything `retrain.py` needs to read must either be committed or reconstructed in the workflow. See `.gitignore` for the full list; the key calls:
+CI runs in a clean checkout with no access to this machine's files, so anything the workflow needs must either be committed, DVC-pullable from somewhere CI can reach, or reconstructed. See `.gitignore` for the full list; the key calls:
 
-- **`telco_features.parquet` is committed.** `retrain.py` loads it directly and the workflow only runs that script (not `feature_engineering.py`), so without it the job has nothing to train on. It's a small (~140KB), fully engineered sample of a public IBM dataset -- there's no privacy/scale reason to keep it out of a portfolio repo.
+- **`telco_features.parquet` is DVC-tracked (`telco_features.parquet.dvc` is committed), not committed directly.** DVC's remote is a local folder on the maintainer's machine (`dvc remote add -d localremote <path>`) -- fine for local dataset versioning across pipeline changes, but a GitHub-hosted runner has no path to reach it, so **CI does not rely on DVC at all**. Instead, the workflow runs `feature_engineering.py` against the committed raw source to regenerate an identical parquet on every run (verified byte-identical to the DVC-tracked version). DVC and CI intentionally use two different paths to the same data here.
 - **`mlflow.db` and `mlruns/` are gitignored, not committed.** A SQLite file has no meaningful diff or merge in git, and committing it would freeze the "current production model" at whatever it was when you committed. Instead, the workflow persists them across CI runs with `actions/cache`, so promotion history builds up naturally between workflow runs without touching version control.
-- **`Telco_customer_churn.xlsx` (raw source) is committed** for anyone who wants to re-run `feature_engineering.py` from scratch; `archive.zip` (a redundant copy of the same public dataset) is gitignored.
+- **`Telco_customer_churn.xlsx` (raw source) is committed** -- this is what CI actually builds `telco_features.parquet` from; `archive.zip` (a redundant copy of the same public dataset) is gitignored.
 - **`reports/`, `feature_importance.png`, `.venv-drift/`** are all regenerated outputs or a local-only environment -- gitignored, not source.
 
 ### Note on `drift_check.py`

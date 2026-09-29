@@ -20,6 +20,15 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      # telco_features.parquet is DVC-tracked with a local-only remote (a folder on
+      # the maintainer's machine), which a GitHub-hosted runner cannot reach. The raw
+      # source spreadsheet is still committed to git, and feature_engineering.py is
+      # deterministic, so CI regenerates the exact same parquet from it instead of
+      # depending on DVC here -- DVC's job stays local dataset versioning, not CI
+      # data delivery.
+      - name: Regenerate features from raw data
+        run: python feature_engineering.py
+
       # A static cache key plus a prefix restore-key gives "always restore the most
       # recent entry, always save a new one" -- with a single fixed key, actions/cache
       # would skip saving on every run after the first, and the promoted/archived tags
